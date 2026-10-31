@@ -2,6 +2,7 @@ FROM debian
 
 ENV TERM=xterm-256color
 RUN echo "alias ll='ls -lahF --color=auto'" >> /etc/bash.bashrc
+
 EXPOSE 80/tcp 80/udp 81/tcp 81/udp
 
 

@@ -5,8 +5,7 @@ CompileFlags:
         - -Wextra
         - --target=aarch64-linux-gnu
         - --sysroot=/Users/ron/Code/rfc-791/sysroot
-    Compiler: gcc
-    BuiltinHeaders: QueryDriver
+    Compiler: clang
 
 Diagnostics:
     ClangTidy:
@@ -16,3 +15,7 @@ Diagnostics:
             - 'performance*'
             - 'readability*'
             - 'linuxkernel-must-check-errs'
+        Remove:
+            - 'readability-identifier-length'
+            - 'bugprone-easily-swappable-parameters'
+            - 'readability-magic-numbers'
