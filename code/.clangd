@@ -1,0 +1,13 @@
+CompileFlags:
+    Add: [-xc, -Wall, -Wextra]
+    Compiler: gcc
+    BuiltinHeaders: QueryDriver
+
+Diagnostics:
+    ClangTidy:
+        Add:
+            - 'modernize*'
+            - 'bugprone*'
+            - 'performance*'
+            - 'readability*'
+            - 'linuxkernel-must-check-errs'
