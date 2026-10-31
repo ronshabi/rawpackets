@@ -2,3 +2,4 @@ data/
 code/build
 .vscode/
 .cache/
+sysroot/

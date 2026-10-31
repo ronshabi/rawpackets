@@ -1,5 +1,10 @@
 CompileFlags:
-    Add: [-xc, -Wall, -Wextra]
+    Add: 
+        - -xc
+        - -Wall
+        - -Wextra
+        - --target=aarch64-linux-gnu
+        - --sysroot=/Users/ron/Code/rfc-791/sysroot
     Compiler: gcc
     BuiltinHeaders: QueryDriver
 
