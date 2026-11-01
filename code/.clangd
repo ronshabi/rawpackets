@@ -4,7 +4,7 @@ CompileFlags:
         - -Wall
         - -Wextra
         - --target=aarch64-linux-gnu
-        - --sysroot=/Users/ron/Code/rfc-791/sysroot
+        - --sysroot=../sysroot
     Compiler: clang
 
 Diagnostics:

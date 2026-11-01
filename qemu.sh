@@ -17,6 +17,9 @@ EDK2VARS_LOCAL="qemu/edk2-arm-vars.fd"
 
 # qemu-img -f qcow2 create $IMG_NAME $IMG_SIZE
 
+    # -cdrom $ALPINE \
+    # -boot order=d \
+
 qemu-system-aarch64 \
     -machine virt \
     -cpu host \
@@ -26,12 +29,10 @@ qemu-system-aarch64 \
     -drive file=$EDK2,if=pflash,format=raw,readonly=on \
     -drive file=$EDK2VARS_LOCAL,if=pflash,format=raw \
     -drive file=$IMG_NAME,if=virtio,format=qcow2 \
-    -cdrom $ALPINE \
     -device virtio-net-pci,netdev=net0 \
     -netdev user,id=net0,hostfwd=tcp::2222-:22 \
     -nographic \
-    -boot order=d \
     -virtfs local,path="$PWD/code",mount_tag=code,security_model=mapped-xattr
 
-# mount -t 9p -o trans=virtio,version=9p2000.u myshare /mnt/shared
+# mkdir -p /code && mount -t 9p -o trans=virtio,version=9p2000.u code /code
 # https://wiki.qemu.org/Documentation/9psetup
