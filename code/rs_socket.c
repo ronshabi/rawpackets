@@ -11,7 +11,8 @@
 #include "rs_socket.h"
 #include "utils.h"
 
-void rs_socket_init(struct rs_socket *s)
+// FIXME: should not die
+int rs_socket_init(struct rs_socket *s)
 {
 	int rc;
 	memset(s, 0, sizeof(struct rs_socket));
@@ -55,9 +56,12 @@ void rs_socket_init(struct rs_socket *s)
 	}
 
 	printf("* set IP_HDRINCL\n");
+	return 0;
 }
 
-void rs_socket_recv(struct rs_socket *s)
+
+// FIXME: should not die
+int rs_socket_recv(struct rs_socket *s)
 {
 	printf("* trying to recv(fd: %d, buf: %p, n: %d)\n", s->fd, s->recvbuf,
 	       RS_SOCKET_BUFSIZE);
@@ -70,6 +74,8 @@ void rs_socket_recv(struct rs_socket *s)
 	}
 
 	rs_socket_hexdump(s);
+
+	return 0;
 }
 
 void rs_socket_hexdump(struct rs_socket *s)

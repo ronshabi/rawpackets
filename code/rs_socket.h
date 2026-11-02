@@ -12,8 +12,7 @@ struct rs_socket {
 	size_t recvlen;
 };
 
-void rs_socket_init(struct rs_socket *s);
-void rs_socket_recv(struct rs_socket *s);
+int rs_socket_init(struct rs_socket *s);
+int rs_socket_recv(struct rs_socket *s);
 void rs_socket_hexdump(struct rs_socket *s);
-void rs_socket_process_recv(struct rs_socket *s);
 void rs_socket_teardown(struct rs_socket *s);

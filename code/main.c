@@ -1,10 +1,19 @@
 #include "rs_context.h"
-
+#include "die.h"
 int main()
 {
+
 	struct rs_context ctx;
-	rs_context_init(&ctx);
-	rs_context_start(&ctx);
+
+	if (rs_context_init(&ctx)) {
+		die("couldn't init context");
+	}
+
+
+	if (rs_context_start(&ctx)) {
+		die("context eventloop error");
+	}
+
 	rs_context_teardown(&ctx);
 	return 0;
 }

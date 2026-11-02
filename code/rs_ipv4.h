@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 //
@@ -15,22 +17,20 @@
 #define RS_IPV4_HDR_IHL_MULTIPLIER 4
 #define RS_IPV4_ADDR_STRING_BUFSIZE 16
 
-struct __attribute__((packed)) rs_ipv4_hdr {
-	uint8_t ihl : 4;
-	uint8_t version : 4;
-	uint8_t tos;
+struct rs_ipv4 {
+	uint16_t ihl;
 	uint16_t len;
+	uint16_t offset;
 	uint16_t ident;
-	uint16_t flags_and_off;
-	uint8_t ttl;
-	uint8_t protocol;
-	uint16_t checksum;
 	uint32_t srcaddr;
 	uint32_t dstaddr;
-};
+	uint8_t ttl;
+	uint8_t proto;
+	bool mf;
+	bool df;
 
-struct rs_ipv4 {
-    struct rs_ipv4_hdr hdr;
 	char srcaddr_str[RS_IPV4_ADDR_STRING_BUFSIZE];
 	char dstaddr_str[RS_IPV4_ADDR_STRING_BUFSIZE];
 };
+
+int rs_ipv4_init(struct rs_ipv4 *st, const uint8_t *buf, size_t bufsize);

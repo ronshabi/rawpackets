@@ -10,4 +10,4 @@ struct rs_packet {
 	char *err;
 };
 
-void rs_packet_init(struct rs_packet *pkt, const uint8_t *buf, size_t bufsize);
+int rs_packet_init(struct rs_packet *pkt, const uint8_t *buf, size_t bufsize);

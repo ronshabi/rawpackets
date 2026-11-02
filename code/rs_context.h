@@ -11,7 +11,7 @@ struct rs_context {
 	struct rs_packet pkt;
 };
 
-void rs_context_init(struct rs_context *ctx);
-void rs_context_start(struct rs_context *ctx);
+int rs_context_init(struct rs_context *ctx);
+int rs_context_start(struct rs_context *ctx);
 void rs_context_teardown(struct rs_context *ctx);
-void rs_context_do_one(struct rs_context *ctx);
+int rs_context_do_one(struct rs_context *ctx);
