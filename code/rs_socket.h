@@ -8,11 +8,12 @@
 
 struct rs_socket {
 	int fd;
-	uint8_t recv_buf[RS_SOCKET_BUFSIZE];
-	size_t recv_len;
+	uint8_t recvbuf[RS_SOCKET_BUFSIZE];
+	size_t recvlen;
 };
 
 void rs_socket_init(struct rs_socket *s);
 void rs_socket_recv(struct rs_socket *s);
 void rs_socket_hexdump(struct rs_socket *s);
 void rs_socket_process_recv(struct rs_socket *s);
+void rs_socket_teardown(struct rs_socket *s);

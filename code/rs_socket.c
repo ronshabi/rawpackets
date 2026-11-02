@@ -3,6 +3,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "die.h"
 
@@ -57,13 +59,13 @@ void rs_socket_init(struct rs_socket *s)
 
 void rs_socket_recv(struct rs_socket *s)
 {
-	printf("* trying to recv(fd: %d, buf: %p, n: %d)\n", s->fd, s->recv_buf,
+	printf("* trying to recv(fd: %d, buf: %p, n: %d)\n", s->fd, s->recvbuf,
 	       RS_SOCKET_BUFSIZE);
-	s->recv_len = recv(s->fd, s->recv_buf, RS_SOCKET_BUFSIZE, 0);
-	printf("* received %zd bytes\n", s->recv_len);
+	s->recvlen = recv(s->fd, s->recvbuf, RS_SOCKET_BUFSIZE, 0);
+	printf("* received %zd bytes\n", s->recvlen);
 
-	if (s->recv_len < 0 || s->recv_len > RS_SOCKET_BUFSIZE) {
-		die("recv length %zd (bufsize is %d)", s->recv_len,
+	if (s->recvlen < 0 || s->recvlen > RS_SOCKET_BUFSIZE) {
+		die("recv length %zd (bufsize is %d)", s->recvlen,
 		    RS_SOCKET_BUFSIZE);
 	}
 
@@ -72,5 +74,10 @@ void rs_socket_recv(struct rs_socket *s)
 
 void rs_socket_hexdump(struct rs_socket *s)
 {
-	hexdump(s->recv_buf, s->recv_len, 16);
+	hexdump(s->recvbuf, s->recvlen, 16);
+}
+void rs_socket_teardown(struct rs_socket *s)
+{
+	printf("* closing socket #%d\n", s->fd);
+	close(s->fd);
 }
