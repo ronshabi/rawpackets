@@ -33,4 +33,6 @@ struct rs_ipv4 {
 	char dstaddr_str[RS_IPV4_ADDR_STRING_BUFSIZE];
 };
 
+const char *rs_ipv4_proto_to_string(int proto);
+
 int rs_ipv4_init(struct rs_ipv4 *st, const uint8_t *buf, size_t bufsize);

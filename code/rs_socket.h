@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #define RS_SOCKET_BUFSIZE (1 << 16)
+#define RS_TCP_PROTOCOL_NUMBER 6
 #define RS_UDP_PROTOCOL_NUMBER 17
 
 struct rs_socket {

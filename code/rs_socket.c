@@ -26,7 +26,7 @@ int rs_socket_init(struct rs_socket *s)
 	// https://man7.org/linux/man-pages/man7/raw.7.html
 	//
 
-	rc = socket(AF_INET, SOCK_RAW, RS_UDP_PROTOCOL_NUMBER);
+	rc = socket(AF_INET, SOCK_RAW, RS_TCP_PROTOCOL_NUMBER);
 
 	if (rc == -1) {
 		die("socket (%s)", strerror(errno));

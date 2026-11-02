@@ -19,7 +19,7 @@ static uint32_t read32u_be(const uint8_t *buf, size_t offset)
 
 static uint16_t read16u_le(const uint8_t *buf, size_t offset)
 {
-	return buf[offset] | buf[offset + 1] << 8;
+	return buf[offset] << 8 | buf[offset + 1];
 }
 
 
@@ -33,8 +33,21 @@ static int ip2str(uint32_t addr, char *out)
 	return 0;
 }
 
+const char *rs_ipv4_proto_to_string(int proto)
+{
+	switch (proto) {
+		case 6:
+			return "TCP";
+		case 17:
+			return "UDP";
+		default:
+			return "???";
+	}
+}
+
 int rs_ipv4_init(struct rs_ipv4 *st, const uint8_t *buf, size_t bufsize)
 {
+	memset(st, 0, sizeof(struct rs_ipv4));
 	int version = buf[0] >> 4;
 
 	// version must be 4
@@ -73,7 +86,7 @@ int rs_ipv4_init(struct rs_ipv4 *st, const uint8_t *buf, size_t bufsize)
 	st->df = (bool)(flags >> 1 & 1);
 	st->mf = (bool)(flags & 1);
 
-	uint8_t off1 = buf[6] & (uint8_t)(~(1 << 5));
+	uint8_t off1 = buf[6] & 0b11111;
 	uint8_t off2 = buf[7];
 	uint16_t off = (off1 | off2 << 8) * 8; // it's in 8 octet chunks
 
