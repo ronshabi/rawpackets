@@ -9,15 +9,15 @@
 #define TUN_IFNAMSIZ 16
 #define TUN_RDBUFSIZ (1 << 16)
 
-struct tun_context {
-	int tunfd;
-    int error;
-	char tunname[TUN_IFNAMSIZ];
+struct tun {
+	int fd;
+	int error;
+	char name[TUN_IFNAMSIZ];
 	uint8_t rdbuf[TUN_RDBUFSIZ];
 	ssize_t nbytesrd;
 };
 
-void tun_init(struct tun_context *ctx, const char *name);
-void tun_read(struct tun_context *ctx);
-
-void tun_dump(struct tun_context *ctx);
+void tun_init(struct tun *tun, const char *name);
+void tun_read(struct tun *tun);
+void tun_dump(struct tun *tun);
+void tun_teardown(struct tun *tun);

@@ -4,11 +4,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#define VERSION 4
-#define IHLMIN 20
-#define IHLMAX 60
-
-#define BAIL(...) printf("Error: ipv4_init: " __VA_ARGS__ "\n"); return 1
 
 static uint32_t read32u_be(const uint8_t *buf, size_t offset)
 {

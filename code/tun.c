@@ -44,9 +44,9 @@ ip tuntap del dev tun69 mode tun
 
 // TODO!: enable asan in alpine and compile with it.
 
-void tun_init(struct tun_context *ctx, const char *name)
+void tun_init(struct tun *tun, const char *name)
 {
-	memset(ctx, 0, sizeof(struct tun_context));
+	memset(tun, 0, sizeof(struct tun));
 	if (!name || strlen(name) >= TUN_IFNAMSIZ) {
 		die("name is not valid for a tun");
 	}
@@ -72,24 +72,32 @@ void tun_init(struct tun_context *ctx, const char *name)
 	}
 
 	// get name of tun into struct context
-	strncpy(ctx->tunname, ifr.ifr_name, IFNAMSIZ);
-	ctx->tunname[IFNAMSIZ - 1] = '\0';
+	strncpy(tun->name, ifr.ifr_name, IFNAMSIZ);
+	tun->name[IFNAMSIZ - 1] = '\0';
 
 	// get tun fd into struct context
-	ctx->tunfd = fd;
+	tun->fd = fd;
 
-	printf("* setup ok: fd = %d, name = '%s'\n", ctx->tunfd, ctx->tunname);
+	printf("* setup ok: fd = %d, name = '%s'\n", tun->fd, tun->name);
 }
 
-void tun_read(struct tun_context *ctx)
+void tun_read(struct tun *tun)
 {
-	ctx->nbytesrd = read(ctx->tunfd, ctx->rdbuf, TUN_RDBUFSIZ);
-	if (ctx->nbytesrd < 0) {
-		die("nbytesrd = %zd", ctx->nbytesrd);
+	tun->nbytesrd = read(tun->fd, tun->rdbuf, TUN_RDBUFSIZ);
+	if (tun->nbytesrd < 0) {
+		die("nbytesrd = %zd", tun->nbytesrd);
 	}
 }
- 
-void tun_dump(struct tun_context *ctx) {
-        printf("> tun '%s' (%d) dump %p (%zd bytes last read):\n", ctx->tunname, ctx->tunfd, ctx->rdbuf, ctx->nbytesrd);
-        hexdump(ctx->rdbuf, ctx->nbytesrd, 16, "  | ");
+
+void tun_dump(struct tun *tun)
+{
+	printf("> tun '%s' (%d) dump %p (%zd bytes last read):\n", tun->name,
+	       tun->fd, tun->rdbuf, tun->nbytesrd);
+	hexdump(tun->rdbuf, tun->nbytesrd, 16, "  | ");
+}
+
+void tun_teardown(struct tun *tun)
+{
+	printf("* closing tun #%d\n", tun->fd);
+	close(tun->fd);
 }
