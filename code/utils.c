@@ -9,8 +9,7 @@ void hexdump(uint8_t *buf, size_t buf_size, size_t column_width,
 	// printf("--- dump %p (%zu)---\n", buf, buf_size);
 
 	for (size_t i = 0; i < buf_size; ++i) {
-		// FIXME: find a more elegant way to do this
-		if (i == 0) {
+		if (i % column_width == 0) {
 			printf("%s", before);
 		}
 
@@ -23,7 +22,6 @@ void hexdump(uint8_t *buf, size_t buf_size, size_t column_width,
 
 		if ((i + 1) % column_width == 0) {
 			putchar('\n');
-			printf("%s", before);
 		} else {
 			putchar(' ');
 		}
