@@ -10,7 +10,12 @@ int main()
 {
 	struct tun_context ctx;
 	tun_init(&ctx, "tun69");
-	tun_read(&ctx);
+	
+	while (1) {
+		tun_read(&ctx);
+		tun_dump(&ctx);
+	}
+
 
 	return 0;
 }

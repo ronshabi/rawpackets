@@ -1,4 +1,5 @@
 #include "tun.h"
+#include "utils.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -82,10 +83,13 @@ void tun_init(struct tun_context *ctx, const char *name)
 
 void tun_read(struct tun_context *ctx)
 {
-	printf("* tun_read\n");
 	ctx->nbytesrd = read(ctx->tunfd, ctx->rdbuf, TUN_RDBUFSIZ);
 	if (ctx->nbytesrd < 0) {
 		die("nbytesrd = %zd", ctx->nbytesrd);
 	}
-	printf("> %zd bytes\n", ctx->nbytesrd);
+}
+ 
+void tun_dump(struct tun_context *ctx) {
+        printf("> tun '%s' (%d) dump %p (%zd bytes last read):\n", ctx->tunname, ctx->tunfd, ctx->rdbuf, ctx->nbytesrd);
+        hexdump(ctx->rdbuf, ctx->nbytesrd, 16, "  | ");
 }
