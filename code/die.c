@@ -5,6 +5,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+// TODO: If errno is not good, display it too, with strerror
+
 noreturn void die(const char *fmt, ...)
 {
 	va_list ap;
