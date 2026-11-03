@@ -1,10 +1,12 @@
 CompileFlags:
     Add: 
-        - -xc
-        - -Wall
-        - -Wextra
-        - --target=aarch64-linux-gnu
-        - --sysroot=../sysroot
+        - '-xc'
+        - '-Wall'
+        - '-Wextra'
+        - '--target=aarch64-linux-gnu'
+        - '--sysroot=../sysroot'
+        - '-D__UAPI_DEF_IF_IFREQ'
+        - '-DIFHWADDRLEN=6'
     Compiler: clang
 
 Diagnostics:
