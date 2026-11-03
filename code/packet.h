@@ -24,4 +24,4 @@ struct packet {
 };
 
 int packet_init(struct packet *pkt, uint8_t *buf, uint64_t bufsiz);
-void packet_dump(struct packet *pkt);
+void packet_dump(struct packet *pkt, const char *prefix);

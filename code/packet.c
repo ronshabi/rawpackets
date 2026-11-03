@@ -78,13 +78,13 @@ int packet_init(struct packet *pkt, uint8_t *buf, uint64_t bufsiz)
 	return 0;
 }
 
-void packet_dump(struct packet *pkt)
+void packet_dump(struct packet *pkt, const char *prefix)
 {
 	struct ip *ip = &pkt->ip;
 	const char *protostr = ipv4_proto_to_string(ip->proto);
 
-	printf("%15s > %15s | %5s | ID: %8hu | %hu/%hu\n", ip->srcaddr_str,
-	       ip->dstaddr_str, protostr, 
-               ip->ident,
+	printf("%s%s > %s | %5s | ID: %8hu | %hu/%hu\n", prefix,
+	       ip->srcaddr_str, ip->dstaddr_str, protostr, ip->ident,
 	       ip->offbytes, ip->lenbytes);
+
 }
