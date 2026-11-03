@@ -16,6 +16,8 @@ void ipv4_to_string(uint32_t addr_be, char *out)
 char *ipv4_proto_to_string(uint8_t proto)
 {
 	switch (proto) {
+	case 1:
+		return "ICMP";
 	case 6:
 		return "TCP";
 	case 17:
