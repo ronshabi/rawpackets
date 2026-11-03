@@ -21,6 +21,12 @@ struct packet {
         char srcaddr_str[IPV4_ADDR_STR_BUFSIZ];
         char dstaddr_str[IPV4_ADDR_STR_BUFSIZ];
     } ip;
+    struct tcp {
+        uint16_t srcport;
+        uint16_t dstport;
+        uint32_t seq;
+        uint32_t ack;
+    } tcp;
 };
 
 int packet_init(struct packet *pkt, uint8_t *buf, uint64_t bufsiz);

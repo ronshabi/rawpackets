@@ -2,8 +2,10 @@
 
 #include <stdint.h>
 
-
 #define IPV4_ADDR_STR_BUFSIZ 16
+#define IPV4_PROTO_ICMP 1
+#define IPV4_PROTO_TCP 6
+#define IPV4_PROTO_UDP 17
 
 // NOTE: We assume the out buffer has enough space to print an ipv4.
 // The maximum space is:

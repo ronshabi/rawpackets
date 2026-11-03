@@ -16,11 +16,11 @@ void ipv4_to_string(uint32_t addr_be, char *out)
 char *ipv4_proto_to_string(uint8_t proto)
 {
 	switch (proto) {
-	case 1:
+	case IPV4_PROTO_ICMP:
 		return "ICMP";
-	case 6:
+	case IPV4_PROTO_TCP:
 		return "TCP";
-	case 17:
+	case IPV4_PROTO_UDP:
 		return "UDP";
 	default:
 		return "???";

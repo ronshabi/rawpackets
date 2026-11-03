@@ -27,14 +27,21 @@ static uint16_t read_u16_bswap(const uint8_t *buf, uint64_t offset)
 	return buf[offset] << 8 | buf[offset + 1];
 }
 
+static uint32_t read_u32_bswap(const uint8_t *buf, uint64_t offset)
+{
+	return ((uint32_t)buf[offset + 3] << 24 |
+		(uint32_t)buf[offset + 2] << 16 |
+		(uint32_t)buf[offset + 1] << 8 | (uint32_t)buf[offset + 0]);
+}
+
 static int parseip(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
 {
 	memset(ip, 0, sizeof(struct ip));
 	ip->version = buf[0] >> 4;
 
-        if (bufsiz < IHLMIN) {
-                BAIL("buffer too small");
-        }
+	if (bufsiz < IHLMIN) {
+		BAIL("buffer too small");
+	}
 
 	if (ip->version != VERSION) {
 		BAIL("version not 4");
@@ -50,10 +57,10 @@ static int parseip(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
 
 	ip->lenbytes = read_u16_bswap(buf, 2);
 
-        // FIXME: implement reassembly.
-        if (bufsiz != ip->lenbytes) {
-                BAIL("buffer size doesn't match ip header packet size, reassembly not implemented yet");
-        }
+	// FIXME: implement reassembly.
+	if (bufsiz != ip->lenbytes) {
+		BAIL("buffer size doesn't match ip header packet size, reassembly not implemented yet");
+	}
 
 	// if total length is less than IHL this is a malformed header
 	if (ip->lenbytes < ip->ihlbytes) {
@@ -62,31 +69,27 @@ static int parseip(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
 
 	ip->ident = read_u16_bswap(buf, 4);
 
-
 	const uint8_t flags = buf[6] >> 13;
 	ip->dontfragment = (flags >> 1 & 1);
 	ip->morefragments = (flags & 1);
 
-        // FIXME: implement reassembly.
-        if (ip->morefragments) {
-                BAIL("MF=1, reassembly is not implemented yet");
-        }
+	// FIXME: implement reassembly.
+	if (ip->morefragments) {
+		BAIL("MF=1, reassembly is not implemented yet");
+	}
 
 	uint8_t off1 = buf[6] & 0b11111;
 	uint8_t off2 = buf[7];
 	ip->offbytes = (off1 | off2 << 8) * 8; // it's in 8 octet chunks
 
-        // FIXME: implement reassembly.
-        if (ip->offbytes) {
-                BAIL("this packet has an offset, reassembly is not implemented yet");
-        }
-
+	// FIXME: implement reassembly.
+	if (ip->offbytes) {
+		BAIL("this packet has an offset, reassembly is not implemented yet");
+	}
 
 	if (ip->offbytes > ip->lenbytes) {
 		BAIL("offset is greater then len");
 	}
-
-
 
 	ip->ttl = buf[8];
 	ip->proto = buf[9];
@@ -98,23 +101,52 @@ static int parseip(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
 	return 0;
 }
 
+static int parsetcp(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz)
+{
+	memset(tcp, 0, sizeof(struct tcp));
+	tcp->srcport = read_u16_bswap(buf, 0);
+	tcp->dstport = read_u16_bswap(buf, 2);
+	tcp->seq = read_u32_bswap(buf, 4);
+	tcp->ack = read_u32_bswap(buf, 8);
+}
+
 // *****************************************************************************
 
 int packet_init(struct packet *pkt, uint8_t *buf, uint64_t bufsiz)
 {
-        struct ip *ip = &pkt->ip;
-        if (parseip(ip, buf, bufsiz)) {
-                BAIL("error parsing ip header");
-        }
-        return 0;
+	struct ip *ip = &pkt->ip;
+	struct tcp *tcp = &pkt->tcp;
+
+	// FIXME: parse* functions should take a const pointer to buf.
+	if (parseip(ip, buf, bufsiz)) {
+		BAIL("error parsing ip header");
+	}
+
+	if (ip->proto != IPV4_PROTO_TCP) {
+		BAIL("currently, only TCP is supported");
+	}
+
+	uint64_t tcp_start_off = ip->ihlbytes;
+	uint64_t rest_of_header = ip->lenbytes - tcp_start_off;
+	uint8_t *tcp_start_ptr = buf + tcp_start_off;
+
+	if (parsetcp(tcp, tcp_start_ptr, rest_of_header)) {
+		BAIL("error parsing tcp");
+	}
+
+	return 0;
 }
 
 void packet_dump(struct packet *pkt, const char *prefix)
 {
 	struct ip *ip = &pkt->ip;
+	struct tcp *tcp = &pkt->tcp;
 	const char *protostr = ipv4_proto_to_string(ip->proto);
 
-	printf("%s%s > %s | %5s | ID: %8hu | %hu/%hu\n", prefix,
+	printf("%sIP: [%s > %s | %5s | ID: %8hu | %hu/%hu]\n", prefix,
 	       ip->srcaddr_str, ip->dstaddr_str, protostr, ip->ident,
 	       ip->offbytes, ip->lenbytes);
+
+	printf("%sTCP: [srcport: %hu, dstport: %hu, seq: %u, ack: %u]\n",
+	       prefix, tcp->srcport, tcp->dstport, tcp->seq, tcp->ack);
 }
