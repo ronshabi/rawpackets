@@ -1,135 +1,10 @@
 #include "packet.h"
 
 #include <stdio.h>
-#include <string.h>
-
-#define VERSION 4
-#define IHLMIN 20
-#define IHLMAX 60
 
 #define BAIL(...)                                   \
 	printf("! packet_init: " __VA_ARGS__ "\n"); \
 	return 1
-
-// *****************************************************************************
-
-// Does not byteswap!
-static uint32_t read_u32(const uint8_t *buf, uint64_t offset)
-{
-	uint32_t out;
-	memcpy(&out, buf + offset, 4);
-	return out;
-}
-
-// Does byteswap
-static uint16_t read_u16_bswap(const uint8_t *buf, uint64_t offset)
-{
-	return buf[offset] << 8 | buf[offset + 1];
-}
-
-static uint32_t read_u32_bswap(const uint8_t *buf, uint64_t offset)
-{
-	const uint32_t x = *(uint32_t *)(buf + offset);
-	return (x & 0x000000FF) << 24 | (x & 0x0000FF00) << 8 |
-	       (x & 0x00FF0000) >> 8 | (x & 0xFF000000) >> 24;
-}
-
-static int parseip(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
-{
-	memset(ip, 0, sizeof(struct ip));
-	ip->version = buf[0] >> 4;
-
-	if (bufsiz < IHLMIN) {
-		BAIL("buffer too small");
-	}
-
-	if (ip->version != VERSION) {
-		BAIL("version not 4");
-	}
-
-	ip->ihlbytes = (unsigned)(buf[0] & 0xF) * 4;
-	// ihl too small or too big
-	if (ip->ihlbytes < IHLMIN || ip->ihlbytes > IHLMAX) {
-		BAIL("ihl not in [20,60]");
-	}
-
-	// FIXME: should not ignore TOS
-
-	ip->lenbytes = read_u16_bswap(buf, 2);
-
-	// FIXME: implement reassembly.
-	if (bufsiz != ip->lenbytes) {
-		BAIL("buffer size doesn't match ip header packet size, reassembly not implemented yet");
-	}
-
-	// if total length is less than IHL this is a malformed header
-	if (ip->lenbytes < ip->ihlbytes) {
-		BAIL("len < ihl");
-	}
-
-	ip->ident = read_u16_bswap(buf, 4);
-
-	const uint8_t flags = buf[6] >> 13;
-	ip->dontfragment = (flags >> 1 & 1);
-	ip->morefragments = (flags & 1);
-
-	// FIXME: implement reassembly.
-	if (ip->morefragments) {
-		BAIL("MF=1, reassembly is not implemented yet");
-	}
-
-	uint8_t off1 = buf[6] & 0b11111;
-	uint8_t off2 = buf[7];
-	ip->offbytes = (off1 | off2 << 8) * 8; // it's in 8 octet chunks
-
-	// FIXME: implement reassembly.
-	if (ip->offbytes) {
-		BAIL("this packet has an offset, reassembly is not implemented yet");
-	}
-
-	if (ip->offbytes > ip->lenbytes) {
-		BAIL("offset is greater then len");
-	}
-
-	ip->ttl = buf[8];
-	ip->proto = buf[9];
-	ip->srcaddr = read_u32(buf, 12);
-	ip->dstaddr = read_u32(buf, 16);
-
-	ipv4_to_string(ip->srcaddr, ip->srcaddr_str);
-	ipv4_to_string(ip->dstaddr, ip->dstaddr_str);
-	return 0;
-}
-
-static int parsetcp(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz)
-{
-	(void)bufsiz; // FIXME
-	memset(tcp, 0, sizeof(struct tcp));
-	tcp->srcport = read_u16_bswap(buf, 0);
-	tcp->dstport = read_u16_bswap(buf, 2);
-	tcp->seq = read_u32_bswap(buf, 4);
-	tcp->ack = read_u32_bswap(buf, 8);
-	
-	const uint8_t dataraw = buf[12];
-	const uint8_t flagsraw = buf[13];
-	tcp->doffsetbytes = (dataraw >> 4) & 0x0F;
-	tcp->doffsetbytes *= 4; // it's scaled by sizeof(u32)
-
-	tcp->flags.cwr = ((flagsraw & (1 << 7)) != 0);
-	tcp->flags.ece = ((flagsraw & (1 << 6)) != 0);
-	tcp->flags.urg = ((flagsraw & (1 << 5)) != 0);
-	tcp->flags.ack = ((flagsraw & (1 << 4)) != 0);
-	tcp->flags.psh = ((flagsraw & (1 << 3)) != 0);
-	tcp->flags.rst = ((flagsraw & (1 << 2)) != 0);
-	tcp->flags.syn = ((flagsraw & (1 << 1)) != 0);
-	tcp->flags.fin = ((flagsraw & (1 << 0)) != 0);
-
-	tcp->window = read_u16_bswap(buf, 14);
-	tcp->checksum = read_u16_bswap(buf, 16);
-	tcp->urgentptr = read_u16_bswap(buf, 18);
-
-	return 0;
-}
 
 // *****************************************************************************
 
@@ -139,7 +14,7 @@ int packet_init(struct packet *pkt, uint8_t *buf, uint64_t bufsiz)
 	struct tcp *tcp = &pkt->tcp;
 
 	// FIXME: parse* functions should take a const pointer to buf.
-	if (parseip(ip, buf, bufsiz)) {
+	if (ip_parse(ip, buf, bufsiz)) {
 		BAIL("error parsing ip header");
 	}
 
@@ -151,7 +26,7 @@ int packet_init(struct packet *pkt, uint8_t *buf, uint64_t bufsiz)
 	uint64_t rest_of_header = ip->lenbytes - tcp_start_off;
 	uint8_t *tcp_start_ptr = buf + tcp_start_off;
 
-	if (parsetcp(tcp, tcp_start_ptr, rest_of_header)) {
+	if (tcp_parse(tcp, tcp_start_ptr, rest_of_header)) {
 		BAIL("error parsing tcp");
 	}
 
@@ -182,14 +57,29 @@ void packet_dump(struct packet *pkt)
 	printf("TCP |    Checksum: 0x%hx\n", tcp->checksum);
 	printf("TCP |   UrgentPtr: %hu\n", tcp->urgentptr);
 	printf("TCP |       Flags: (");
-	if (tcp->flags.cwr) { printf("CWR "); }
-	if (tcp->flags.ece) { printf("ECE "); }
-	if (tcp->flags.urg) { printf("URG "); }
-	if (tcp->flags.ack) { printf("ACK "); }
-	if (tcp->flags.psh) { printf("PSH "); }
-	if (tcp->flags.rst) { printf("RST "); }
-	if (tcp->flags.syn) { printf("SYN "); }
-	if (tcp->flags.fin) { printf("FIN "); }
+	if (tcp->flags.cwr) {
+		printf("CWR ");
+	}
+	if (tcp->flags.ece) {
+		printf("ECE ");
+	}
+	if (tcp->flags.urg) {
+		printf("URG ");
+	}
+	if (tcp->flags.ack) {
+		printf("ACK ");
+	}
+	if (tcp->flags.psh) {
+		printf("PSH ");
+	}
+	if (tcp->flags.rst) {
+		printf("RST ");
+	}
+	if (tcp->flags.syn) {
+		printf("SYN ");
+	}
+	if (tcp->flags.fin) {
+		printf("FIN ");
+	}
 	printf(")\n");
-
 }
