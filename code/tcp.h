@@ -24,3 +24,4 @@ struct tcp {
 };
 
 int tcp_parse(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz);
+void tcp_dump(struct tcp *tcp);

@@ -101,3 +101,17 @@ int ip_parse(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
 	ipv4_to_string(ip->dstaddr, ip->dstaddr_str);
 	return 0;
 }
+void ip_dump(struct ip *ip)
+{
+	const char *protostr = ipv4_proto_to_string(ip->proto);
+
+	printf(" IP |   HdrLength: %hu bytes\n", ip->ihlbytes);
+	printf(" IP |         TTL: %u\n", (uint32_t)ip->ttl);
+	printf(" IP | Source Addr: %s\n", ip->srcaddr_str);
+	printf(" IP |   Dest Addr: %s\n", ip->dstaddr_str);
+	printf(" IP |    Protocol: %u (%s)\n", (uint32_t)ip->proto, protostr);
+	printf(" IP |  Identifier: %hu\n", ip->ident);
+	printf(" IP |      Offset: %hu\n", ip->offbytes);
+	printf(" IP |      Length: %hu\n", ip->lenbytes);
+	printf(" IP |    Checksum: 0x%hx\n", ip->checksum);
+}

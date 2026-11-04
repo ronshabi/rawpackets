@@ -2,6 +2,7 @@
 
 #include "utils.h"
 #include <string.h>
+#include <stdio.h>
 
 #define BAIL(...)                                 \
 	printf("! tcp_parse: " __VA_ARGS__ "\n"); \
@@ -35,4 +36,42 @@ int tcp_parse(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz)
 	tcp->urgentptr = read_u16_bswap(buf, 18);
 
 	return 0;
+}
+
+void tcp_dump(struct tcp *tcp)
+{
+	printf("TCP | Source Port: %hu\n", tcp->srcport);
+	printf("TCP |   Dest Port: %hu\n", tcp->dstport);
+	printf("TCP |         SEQ: %u\n", tcp->seq);
+	printf("TCP |         ACK: %u\n", tcp->ack);
+	printf("TCP |     DOffset: %u bytes\n", (uint32_t)tcp->doffsetbytes);
+	printf("TCP |      Window: %u\n", tcp->window);
+	printf("TCP |    Checksum: 0x%hx\n", tcp->checksum);
+	printf("TCP |   UrgentPtr: %hu\n", tcp->urgentptr);
+	printf("TCP |       Flags: (");
+	if (tcp->flags.cwr) {
+		printf("CWR ");
+	}
+	if (tcp->flags.ece) {
+		printf("ECE ");
+	}
+	if (tcp->flags.urg) {
+		printf("URG ");
+	}
+	if (tcp->flags.ack) {
+		printf("ACK ");
+	}
+	if (tcp->flags.psh) {
+		printf("PSH ");
+	}
+	if (tcp->flags.rst) {
+		printf("RST ");
+	}
+	if (tcp->flags.syn) {
+		printf("SYN ");
+	}
+	if (tcp->flags.fin) {
+		printf("FIN ");
+	}
+	printf(")\n");
 }

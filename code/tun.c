@@ -75,6 +75,8 @@ void tun_read(struct tun *tun)
 int tun_run_one(struct tun *tun)
 {
 	tun_read(tun);
+	printf("%zu\n", tun->n_read_events);
+
 	int rc = packet_init(&tun->lastpkt, tun->rdbuf, tun->nbytesrd);
 
 	if (rc) {
@@ -82,9 +84,8 @@ int tun_run_one(struct tun *tun)
 		return 1;
 	}
 
-	printf("    [ IN %zu ]\n", tun->n_read_events);
-	packet_dump(&tun->lastpkt);
-	printf("\n");
+	putchar('\n');
+
 	return 0;
 }
 

@@ -37,3 +37,4 @@ void ipv4_to_string(uint32_t addr_be, char *out);
 char *ipv4_proto_to_string(uint8_t proto);
 
 int ip_parse(struct ip* ip, uint8_t *buf, uint64_t bufsiz);
+void ip_dump(struct ip *ip);
