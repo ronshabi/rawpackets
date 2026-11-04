@@ -98,3 +98,7 @@ SpaceAfterLogicalNot: false
 SpaceAroundPointerQualifiers: After
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeCaseColon: false
+
+# Parameters
+PackParameters:
+  BinPack: OnePerLine

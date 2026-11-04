@@ -1,15 +1,17 @@
 #include "tun.h"
-#include "utils.h"
+
+#include "die.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "die.h"
 #include <fcntl.h>
+#include <unistd.h>
+
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
 
 // https://docs.kernel.org/networking/tuntap.html
 // https://man7.org/linux/man-pages/man7/netdevice.7.html
@@ -28,76 +30,76 @@
 
 void tun_init(struct tun *tun, const char *name)
 {
-	memset(tun, 0, sizeof(struct tun));
-	if (!name || strlen(name) >= TUN_IFNAMSIZ) {
-		die("name is not valid for a tun");
-	}
+    memset(tun, 0, sizeof(struct tun));
+    if (!name || strlen(name) >= TUN_IFNAMSIZ) {
+        die("name is not valid for a tun");
+    }
 
-	// clone a tun
-	struct ifreq ifr;
-	int fd = open("/dev/net/tun", O_RDWR);
-	if (fd < 0) {
-		// FIXME: use in-struct error
-		die("open");
-	}
+    // clone a tun
+    struct ifreq ifr;
+    int          fd = open("/dev/net/tun", O_RDWR);
+    if (fd < 0) {
+        // FIXME: use in-struct error
+        die("open");
+    }
 
-	memset(&ifr, 0, sizeof(ifr));
-	ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+    memset(&ifr, 0, sizeof(ifr));
+    ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
 
-	// copy name to tun config
-	strncpy(ifr.ifr_name, name, IFNAMSIZ);
+    // copy name to tun config
+    strncpy(ifr.ifr_name, name, IFNAMSIZ);
 
-	// register
-	int rc = ioctl(fd, TUNSETIFF, (void *)&ifr);
-	if (rc < 0) {
-		die("ioctl tunsetiff");
-	}
+    // register
+    int rc = ioctl(fd, TUNSETIFF, (void *)&ifr);
+    if (rc < 0) {
+        die("ioctl tunsetiff");
+    }
 
-	// get name of tun into struct context
-	strncpy(tun->name, ifr.ifr_name, IFNAMSIZ);
-	tun->name[IFNAMSIZ - 1] = '\0';
+    // get name of tun into struct context
+    strncpy(tun->name, ifr.ifr_name, IFNAMSIZ);
+    tun->name[IFNAMSIZ - 1] = '\0';
 
-	// get tun fd into struct context
-	tun->fd = fd;
+    // get tun fd into struct context
+    tun->fd = fd;
 
-	printf("* setup ok: fd = %d, name = '%s'\n", tun->fd, tun->name);
+    printf("* setup ok: fd = %d, name = '%s'\n", tun->fd, tun->name);
 }
 
 void tun_read(struct tun *tun)
 {
-	tun->nbytesrd = read(tun->fd, tun->rdbuf, TUN_RDBUFSIZ);
-	tun->n_read_events++;
-	if (tun->nbytesrd < 0) {
-		die("nbytesrd = %zd", tun->nbytesrd);
-	}
+    tun->nbytesrd = read(tun->fd, tun->rdbuf, TUN_RDBUFSIZ);
+    tun->n_read_events++;
+    if (tun->nbytesrd < 0) {
+        die("nbytesrd = %zd", tun->nbytesrd);
+    }
 }
 
 int tun_run_one(struct tun *tun)
 {
-	tun_read(tun);
-	printf("%zu\n", tun->n_read_events);
+    tun_read(tun);
+    printf("%zu\n", tun->n_read_events);
 
-	int rc = packet_init(&tun->lastpkt, tun->rdbuf, tun->nbytesrd);
+    int rc = packet_init(&tun->lastpkt, tun->rdbuf, tun->nbytesrd);
 
-	if (rc) {
-		tun->n_packet_errors++;
-		return 1;
-	}
+    if (rc) {
+        tun->n_packet_errors++;
+        return 1;
+    }
 
-	putchar('\n');
+    putchar('\n');
 
-	return 0;
+    return 0;
 }
 
 void tun_run(struct tun *tun)
 {
-	while (1) {
-		tun_run_one(tun); // FIXME: don't ignore return val
-	}
+    while (1) {
+        tun_run_one(tun); // FIXME: don't ignore return val
+    }
 }
 
 void tun_teardown(struct tun *tun)
 {
-	printf("* closing tun #%d\n", tun->fd);
-	close(tun->fd);
+    printf("* closing tun #%d\n", tun->fd);
+    close(tun->fd);
 }
