@@ -66,16 +66,33 @@ void tun_init(struct tun *tun, const char *name)
 void tun_read(struct tun *tun)
 {
 	tun->nbytesrd = read(tun->fd, tun->rdbuf, TUN_RDBUFSIZ);
+	tun->n_read_events++;
 	if (tun->nbytesrd < 0) {
 		die("nbytesrd = %zd", tun->nbytesrd);
 	}
 }
 
-void tun_dump(struct tun *tun)
+int tun_run_one(struct tun *tun)
 {
-	printf("> tun '%s' (%d) dump %p (%zd bytes last read):\n", tun->name,
-	       tun->fd, tun->rdbuf, tun->nbytesrd);
-	hexdump(tun->rdbuf, tun->nbytesrd, 16, "  | ");
+	tun_read(tun);
+	int rc = packet_init(&tun->lastpkt, tun->rdbuf, tun->nbytesrd);
+
+	if (rc) {
+		tun->n_packet_errors++;
+		return 1;
+	}
+
+	printf("    [ IN %zu ]\n", tun->n_read_events);
+	packet_dump(&tun->lastpkt);
+	printf("\n");
+	return 0;
+}
+
+void tun_run(struct tun *tun)
+{
+	while (1) {
+		tun_run_one(tun); // FIXME: don't ignore return val
+	}
 }
 
 void tun_teardown(struct tun *tun)

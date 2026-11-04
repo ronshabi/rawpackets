@@ -12,17 +12,7 @@ int main()
 {
 	struct tun tun;
 	tun_init(&tun, "tun69");
-
-	while (1) {
-		tun_read(&tun);
-		// tun_dump(&tun);
-		struct packet pkt;
-		int rc = packet_init(&pkt, tun.rdbuf, tun.nbytesrd);
-		if (rc == 0) {
-			packet_dump(&pkt, "> ");
-		}
-	}
-
+	tun_run(&tun);
 	tun_teardown(&tun);
 
 	return 0;

@@ -109,6 +109,25 @@ static int parsetcp(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz)
 	tcp->dstport = read_u16_bswap(buf, 2);
 	tcp->seq = read_u32_bswap(buf, 4);
 	tcp->ack = read_u32_bswap(buf, 8);
+	
+	const uint8_t dataraw = buf[12];
+	const uint8_t flagsraw = buf[13];
+	tcp->doffsetbytes = (dataraw >> 4) & 0x0F;
+	tcp->doffsetbytes *= 4; // it's scaled by sizeof(u32)
+
+	tcp->flags.cwr = ((flagsraw & (1 << 7)) != 0);
+	tcp->flags.ece = ((flagsraw & (1 << 6)) != 0);
+	tcp->flags.urg = ((flagsraw & (1 << 5)) != 0);
+	tcp->flags.ack = ((flagsraw & (1 << 4)) != 0);
+	tcp->flags.psh = ((flagsraw & (1 << 3)) != 0);
+	tcp->flags.rst = ((flagsraw & (1 << 2)) != 0);
+	tcp->flags.syn = ((flagsraw & (1 << 1)) != 0);
+	tcp->flags.fin = ((flagsraw & (1 << 0)) != 0);
+
+	tcp->window = read_u16_bswap(buf, 14);
+	tcp->checksum = read_u16_bswap(buf, 16);
+	tcp->urgentptr = read_u16_bswap(buf, 18);
+
 	return 0;
 }
 
@@ -139,16 +158,38 @@ int packet_init(struct packet *pkt, uint8_t *buf, uint64_t bufsiz)
 	return 0;
 }
 
-void packet_dump(struct packet *pkt, const char *prefix)
+void packet_dump(struct packet *pkt)
 {
 	struct ip *ip = &pkt->ip;
 	struct tcp *tcp = &pkt->tcp;
 	const char *protostr = ipv4_proto_to_string(ip->proto);
 
-	printf("%sIP:  [%s > %s | %5s | ID: %8hu | %hu/%hu]\n", prefix,
-	       ip->srcaddr_str, ip->dstaddr_str, protostr, ip->ident,
-	       ip->offbytes, ip->lenbytes);
+	printf(" IP |   HdrLength: %hu bytes\n", ip->ihlbytes);
+	printf(" IP |         TTL: %u\n", (uint32_t)ip->ttl);
+	printf(" IP | Source Addr: %s\n", ip->srcaddr_str);
+	printf(" IP |   Dest Addr: %s\n", ip->dstaddr_str);
+	printf(" IP |    Protocol: %u (%s)\n", (uint32_t)ip->proto, protostr);
+	printf(" IP |  Identifier: %hu\n", ip->ident);
+	printf(" IP |      Offset: %hu\n", ip->offbytes);
+	printf(" IP |      Length: %hu\n", ip->lenbytes);
+	printf(" IP |    Checksum: 0x%hx\n", ip->checksum);
+	printf("TCP | Source Port: %hu\n", tcp->srcport);
+	printf("TCP |   Dest Port: %hu\n", tcp->dstport);
+	printf("TCP |         SEQ: %u\n", tcp->seq);
+	printf("TCP |         ACK: %u\n", tcp->ack);
+	printf("TCP |     DOffset: %u bytes\n", (uint32_t)tcp->doffsetbytes);
+	printf("TCP |      Window: %u\n", tcp->window);
+	printf("TCP |    Checksum: 0x%hx\n", tcp->checksum);
+	printf("TCP |   UrgentPtr: %hu\n", tcp->urgentptr);
+	printf("TCP |       Flags: (");
+	if (tcp->flags.cwr) { printf("CWR "); }
+	if (tcp->flags.ece) { printf("ECE "); }
+	if (tcp->flags.urg) { printf("URG "); }
+	if (tcp->flags.ack) { printf("ACK "); }
+	if (tcp->flags.psh) { printf("PSH "); }
+	if (tcp->flags.rst) { printf("RST "); }
+	if (tcp->flags.syn) { printf("SYN "); }
+	if (tcp->flags.fin) { printf("FIN "); }
+	printf(")\n");
 
-	printf("%sTCP: [srcport: %hu, dstport: %hu, seq: %u, ack: %u]\n",
-	       prefix, tcp->srcport, tcp->dstport, tcp->seq, tcp->ack);
 }
