@@ -20,3 +20,10 @@ if [[ ! -a /sys/class/net/tun69 ]]; then
 else
     echo "tun69 already exists"
 fi
+
+# https://docs.cyanlab.org/en/stable/CNIT481-SDN/source/labs/linux_bridges.html 
+#down
+#ip link set dev tun69 down
+
+#deletion:
+#ip tuntap del dev tun69 mode tun

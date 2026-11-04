@@ -24,24 +24,6 @@
 // VHDR sizes are either 10,12 or 20. from:
 // https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html
 
-/*
-
-https://docs.cyanlab.org/en/stable/CNIT481-SDN/source/labs/linux_bridges.html
-
-equiv setup in iproute2:
-
-ip tuntap add dev tun69 mod tun
-ip addr add 10.0.0.1/24 dev tun69
-ip link set dev tun69 up
-
-down
-ip link set dev tun69 down
-
-deletion:
-ip tuntap del dev tun69 mode tun
-
-*/
-
 // TODO!: enable asan in alpine and compile with it.
 
 void tun_init(struct tun *tun, const char *name)
