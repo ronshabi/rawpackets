@@ -14,7 +14,7 @@ fi
 
 if [[ ! -a /sys/class/net/tun69 ]]; then
     echo "creating tun69"
-    ip tuntap add dev tun69 mod tun
+    ip tuntap add dev tun69 mode tun
     ip addr add 10.0.0.1/24 dev tun69
     ip link set dev tun69 up
 else

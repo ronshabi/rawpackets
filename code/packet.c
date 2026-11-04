@@ -29,9 +29,9 @@ static uint16_t read_u16_bswap(const uint8_t *buf, uint64_t offset)
 
 static uint32_t read_u32_bswap(const uint8_t *buf, uint64_t offset)
 {
-	return ((uint32_t)buf[offset + 3] << 24 |
-		(uint32_t)buf[offset + 2] << 16 |
-		(uint32_t)buf[offset + 1] << 8 | (uint32_t)buf[offset + 0]);
+	const uint32_t x = *(uint32_t *)(buf + offset);
+	return (x & 0x000000FF) << 24 | (x & 0x0000FF00) << 8 |
+	       (x & 0x00FF0000) >> 8 | (x & 0xFF000000) >> 24;
 }
 
 static int parseip(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
@@ -103,11 +103,13 @@ static int parseip(struct ip *ip, uint8_t *buf, uint64_t bufsiz)
 
 static int parsetcp(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz)
 {
+	(void)bufsiz; // FIXME
 	memset(tcp, 0, sizeof(struct tcp));
 	tcp->srcport = read_u16_bswap(buf, 0);
 	tcp->dstport = read_u16_bswap(buf, 2);
 	tcp->seq = read_u32_bswap(buf, 4);
 	tcp->ack = read_u32_bswap(buf, 8);
+	return 0;
 }
 
 // *****************************************************************************
@@ -143,7 +145,7 @@ void packet_dump(struct packet *pkt, const char *prefix)
 	struct tcp *tcp = &pkt->tcp;
 	const char *protostr = ipv4_proto_to_string(ip->proto);
 
-	printf("%sIP: [%s > %s | %5s | ID: %8hu | %hu/%hu]\n", prefix,
+	printf("%sIP:  [%s > %s | %5s | ID: %8hu | %hu/%hu]\n", prefix,
 	       ip->srcaddr_str, ip->dstaddr_str, protostr, ip->ident,
 	       ip->offbytes, ip->lenbytes);
 

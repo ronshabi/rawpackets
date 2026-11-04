@@ -15,16 +15,12 @@ int main()
 
 	while (1) {
 		tun_read(&tun);
-		tun_dump(&tun);
+		// tun_dump(&tun);
 		struct packet pkt;
-		packet_init(&pkt, tun.rdbuf, tun.nbytesrd);
-		packet_dump(&pkt, "  * ");
-
-		// dump payload
-		uint64_t payload_off = pkt.ip.ihlbytes;
-		printf("  * payload (offset: %zu)\n", payload_off);
-		hexdump(tun.rdbuf + payload_off, pkt.ip.lenbytes - payload_off,
-			16, "    | ");
+		int rc = packet_init(&pkt, tun.rdbuf, tun.nbytesrd);
+		if (rc == 0) {
+			packet_dump(&pkt, "> ");
+		}
 	}
 
 	tun_teardown(&tun);
