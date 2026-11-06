@@ -7,6 +7,8 @@
 #define IPV4_PROTO_TCP       6
 #define IPV4_PROTO_UDP       17
 
+#define MTU 1500
+
 struct ip {
     uint8_t  version;
     uint8_t  ihlbytes;

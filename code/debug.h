@@ -2,6 +2,6 @@
 
 #define DBG(fmt, ...)                                       \
     do {                                                    \
-        printf("[  %10s] %25s | ", __FILE__, __FUNCTION__); \
+        printf("  %10s| %32s | ", __FILE__, __FUNCTION__); \
         printf(fmt "\n", ##__VA_ARGS__);                    \
     } while (0)

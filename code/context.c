@@ -1,11 +1,14 @@
 #include "context.h"
+
+#include "datetime.h"
 #include "debug.h"
 #include "die.h"
 
-#include <netinet/in.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include <netinet/in.h>
 
 // -----------------------------------------------------------------------------
 
@@ -15,25 +18,28 @@ void context_init(struct context *ctx, const char *tun_name)
     memset(ctx, 0, sizeof(struct context));
     tun_init(&ctx->tun, tun_name);
     tcp_pool_init(&ctx->tcp_pool);
-
 }
 void context_run(struct context *ctx)
 {
     // FIXME: introduce a status variable to mark if running and shit
-    for (ctx->nevents = 0 ;; ++ctx->nevents) {
-        DBG("Event %lu", ctx->nevents);
+    for (ctx->nevents = 0;; ++ctx->nevents) {
+        DBG("----------------------------------------------------------------");
+        DBG("event %lu", ctx->nevents);
         context_run_one(ctx);
     }
 }
 
 void context_run_one(struct context *ctx)
 {
-    context_process_one_tcp(ctx);
+    struct tcp_pool_item *item = tcp_pool_next_pending(&ctx->tcp_pool);
+
+    context_process_one_tcp_item(item);
 
     tun_run_one(&ctx->tun);
 
     struct basic_packet_info bpi;
-    int badpacket = packet_parse_shallow(ctx->tun.rdbuf, ctx->tun.nbytesrd, &bpi);
+    int                      badpacket =
+        packet_parse_shallow(ctx->tun.rdbuf, ctx->tun.nbytesrd, &bpi);
 
     if (badpacket) {
         return;
@@ -42,49 +48,71 @@ void context_run_one(struct context *ctx)
     // now we should find a slot for this new tcp connection
 
     if (bpi.protocol == IPPROTO_TCP) {
-        context_handle_new_tcp(ctx, &bpi);
+        context_handle_incoming_tcp(ctx, &bpi);
     } else {
         DBG("unimplemented protocol");
         return;
     }
 }
-void context_process_one_tcp(struct context *ctx)
+void context_process_one_tcp_item(struct tcp_pool_item *item)
 {
-    DBG("Process one off the TCP pool");
-    struct tcp_pool_item *item = tcp_pool_next_pending(&ctx->tcp_pool);
     if (!item) {
-        DBG("Nothing to process");
+        DBG("None pending");
         return;
     }
-
-    DBG("Queue has one connection, umimplemented rn");
-    die("unimp");
 }
 
-void context_handle_new_tcp(struct context *ctx, struct basic_packet_info *bpi)  {
-    DBG("TCP: 0x%08X (%hu) -> 0x%08X (%hu): %u bytes", bpi->src_addr, bpi->src_port, bpi->dst_addr, bpi->dst_port, bpi->len);
+// FIXME: change the name
+void context_handle_incoming_tcp(struct context           *ctx,
+                                 struct basic_packet_info *bpi)
+{
+    DBG("0x%08X:%hu => 0x%08X:%hu (%u bytes)", bpi->src_addr, bpi->src_port,
+        bpi->dst_addr, bpi->dst_port, bpi->len);
 
-    struct tcp_pool_item *item = tcp_pool_next_free(&ctx->tcp_pool);
+    int                   is_new = 0;
+    struct tcp_pool      *pool   = &ctx->tcp_pool;
+    struct tcp_pool_item *item;
+
+    // try to match first
+    item = tcp_pool_match(pool, bpi->src_addr, bpi->dst_addr, bpi->src_port,
+                          bpi->dst_port);
 
     if (!item) {
-        DBG("no slots available in tcp pool, ignoring this packet :(");
-        return;
+        DBG("No match for connection, will try to pool alloc");
+        is_new = 1;
     }
 
-    // Assign this connection to the pool.
-    item->src_ip = bpi->src_addr;
-    item->dst_ip = bpi->dst_addr;
-    item->src_port = bpi->src_port;
-    item->dst_port = bpi->dst_port;
+    if (is_new) {
+        item = tcp_pool_next_free(&ctx->tcp_pool);
 
-    // Allocate new TCB for this connection
-    // Note that we reached this place BECAUSE the tcb of this pool item was
-    // NULL, meaning when the connection closed, that connection was responsible
-    // for freeing its TCB and zeroing the tcb pointer.
-    // Failure to do so is a leak, but it's not our fault here.
-    item->tcb = malloc(sizeof (struct tcb));
-    DBG("init new TCB");
-    die("unimp");
+        if (!item) {
+            DBG("no slots available in tcp pool, ignoring this packet :(");
+            return;
+        }
+
+        // Assign this connection to the pool.
+        item->src_ip   = bpi->src_addr;
+        item->dst_ip   = bpi->dst_addr;
+        item->src_port = bpi->src_port;
+        item->dst_port = bpi->dst_port;
+
+        // Allocate new TCB for this connection
+        // Note that we reached this place BECAUSE the tcb of this pool item was
+        // NULL, meaning when the connection closed, that connection was
+        // responsible for freeing its TCB and zeroing the tcb pointer. Failure
+        // to do so is a leak, but it's not our fault here.
+        item->tcb = malloc(sizeof(struct tcb));
+        DBG("init new TCB");
+    }
+
+    DBG("Copy %lu bytes into TCB", ctx->tun.nbytesrd);
+
+    if (item->tcb->pkt_len) {
+        // FIXME: maybe implement queue?
+        DBG("!!! WARNING: There is already data in the TCB packet !!!");
+    }
+    item->tcb->pkt_len = ctx->tun.nbytesrd;
+    memcpy(item->tcb->pkt_data, ctx->tun.rdbuf, ctx->tun.nbytesrd);
 }
 
 void context_teardown(struct context *ctx)
