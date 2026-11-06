@@ -3,6 +3,7 @@ CompileFlags:
         - '-xc'
         - '-Wall'
         - '-Wextra'
+        - '-std=c99'
         - '--target=aarch64-linux-gnu'
         - '--sysroot=../sysroot'
         - '-D__UAPI_DEF_IF_IFREQ'
