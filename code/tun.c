@@ -1,5 +1,6 @@
 #include "tun.h"
 
+#include "debug.h"
 #include "die.h"
 
 #include <stdint.h>
@@ -30,12 +31,15 @@
 
 void tun_init(struct tun *tun, const char *name)
 {
+    DBG("init tun '%s'", name);
     memset(tun, 0, sizeof(struct tun));
     if (!name || strlen(name) >= TUN_IFNAMSIZ) {
         die("name is not valid for a tun");
     }
 
     // clone a tun
+
+    DBG("clone");
     struct ifreq ifr;
     int          fd = open("/dev/net/tun", O_RDWR);
     if (fd < 0) {
@@ -50,9 +54,10 @@ void tun_init(struct tun *tun, const char *name)
     strncpy(ifr.ifr_name, name, IFNAMSIZ);
 
     // register
+    DBG("ioctl");
     int rc = ioctl(fd, TUNSETIFF, (void *)&ifr);
     if (rc < 0) {
-        die("ioctl tunsetiff");
+        die("ioctl");
     }
 
     // get name of tun into struct context
@@ -62,7 +67,7 @@ void tun_init(struct tun *tun, const char *name)
     // get tun fd into struct context
     tun->fd = fd;
 
-    printf("* setup ok: fd = %d, name = '%s'\n", tun->fd, tun->name);
+    DBG("ok: fd=%d, name='%s'", tun->fd, tun->name);
 }
 
 void tun_read(struct tun *tun)
