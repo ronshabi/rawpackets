@@ -3,6 +3,7 @@
 #include "datetime.h"
 #include "debug.h"
 #include "die.h"
+#include "tcp_pool.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +34,9 @@ void context_run_one(struct context *ctx)
 {
     struct tcp_pool_item *item = tcp_pool_next_pending(&ctx->tcp_pool);
 
-    context_process_one_tcp_item(item);
+    if (item) {
+        context_process_one_tcp_item(item);
+    }
 
     tun_run_one(&ctx->tun);
 
@@ -54,11 +57,26 @@ void context_run_one(struct context *ctx)
         return;
     }
 }
+
+// FIXME: change the name better
 void context_process_one_tcp_item(struct tcp_pool_item *item)
 {
-    if (!item) {
-        DBG("None pending");
-        return;
+    // REFACTOR: move into the tcp file
+    struct tcb *tcb = item->tcb;
+
+    switch (tcb->state) {
+
+    case TCP_STATE_CLOSED      : die("closed"); break;
+    case TCP_STATE_LISTEN      : die("listen"); break;
+    case TCP_STATE_SYN_SENT    : die("syn sent"); break;
+    case TCP_STATE_SYN_RECEIVED: die("syn received"); break;
+    case TCP_STATE_ESTABLISHED : die("state established"); break;
+    case TCP_STATE_FIN_WAIT_1  : die("finwait1"); break;
+    case TCP_STATE_FIN_WAIT_2  : die("finwait2"); break;
+    case TCP_STATE_CLOSE_WAIT  : die("closewait"); break;
+    case TCP_STATE_CLOSING     : die("closing"); break;
+    case TCP_STATE_LAST_ACK    : die("last ack"); break;
+    case TCP_STATE_TIME_WAIT   : die("timewait"); break;
     }
 }
 
@@ -102,7 +120,8 @@ void context_handle_incoming_tcp(struct context           *ctx,
         // responsible for freeing its TCB and zeroing the tcb pointer. Failure
         // to do so is a leak, but it's not our fault here.
         item->tcb = malloc(sizeof(struct tcb));
-        DBG("init new TCB");
+        item->tcb->state = TCP_STATE_LISTEN;
+        DBG("init new TCB on LISTEN");
     }
 
     DBG("Copy %lu bytes into TCB", ctx->tun.nbytesrd);
