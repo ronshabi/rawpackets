@@ -1,17 +1,13 @@
-
-// TODO: make clangd/clang-format sort these headers goddamn
-#include "tun.h"
+#include "context.h"
 
 #include <stdio.h>
 
-#define QUICKBUFSIZE 256
 
 int main()
 {
-    struct tun tun;
-    tun_init(&tun, "tun69");
-    tun_run(&tun);
-    tun_teardown(&tun);
-
+    struct context ctx;
+    context_init(&ctx, "tun69");
+    context_run(&ctx);
+    context_teardown(&ctx);
     return 0;
 }

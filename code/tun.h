@@ -27,5 +27,4 @@ struct tun {
 void tun_init(struct tun *tun, const char *name);
 void tun_read(struct tun *tun);
 int  tun_run_one(struct tun *tun);
-void tun_run(struct tun *tun);
 void tun_teardown(struct tun *tun);

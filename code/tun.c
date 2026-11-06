@@ -82,25 +82,7 @@ void tun_read(struct tun *tun)
 int tun_run_one(struct tun *tun)
 {
     tun_read(tun);
-    printf("%zu\n", tun->n_read_events);
-
-    int rc = packet_init(&tun->lastpkt, tun->rdbuf, tun->nbytesrd);
-
-    if (rc) {
-        tun->n_packet_errors++;
-        return 1;
-    }
-
-    putchar('\n');
-
-    return 0;
-}
-
-void tun_run(struct tun *tun)
-{
-    while (1) {
-        tun_run_one(tun); // FIXME: don't ignore return val
-    }
+    return 0; // FIXME: return something useful
 }
 
 void tun_teardown(struct tun *tun)
