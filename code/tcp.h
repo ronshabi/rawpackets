@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-struct tcp {
+struct tcp_header {
     uint16_t srcport;
     uint16_t dstport;
     uint32_t seq;
@@ -54,7 +54,9 @@ struct tcb {
     uint64_t irs;
     uint64_t pkt_len;
     uint8_t  pkt_data[MTU];
+    uint32_t iphdrlen;
+    struct tcp_header th;
 };
 
-int  tcp_parse(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz);
-void tcp_dump(struct tcp *tcp);
+int  tcp_parse_header(struct tcp_header *th, uint8_t *buf, uint64_t bufsiz);
+void tcp_dumphdr(struct tcp_header *tcp);

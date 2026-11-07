@@ -1,7 +1,7 @@
 #include "tcp.h"
-
+#include "die.h"
 #include "bytes.h"
-
+#include "utils.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -9,37 +9,45 @@
     printf("! tcp_parse: " __VA_ARGS__ "\n"); \
     return 1
 
-int tcp_parse(struct tcp *tcp, uint8_t *buf, uint64_t bufsiz)
+#define BASE_HDR_SZ (5 * 4)
+
+int tcp_parse_header(struct tcp_header *th, uint8_t *buf, uint64_t bufsiz)
 {
     (void)bufsiz; // FIXME
-    memset(tcp, 0, sizeof(struct tcp));
-    tcp->srcport = read_u16_bswap(buf, 0);
-    tcp->dstport = read_u16_bswap(buf, 2);
-    tcp->seq     = read_u32_bswap(buf, 4);
-    tcp->ack     = read_u32_bswap(buf, 8);
+    memset(th, 0, sizeof(struct tcp_header));
+    th->srcport = read_u16_bswap(buf, 0);
+    th->dstport = read_u16_bswap(buf, 2);
+    th->seq     = read_u32_bswap(buf, 4);
+    th->ack     = read_u32_bswap(buf, 8);
 
     const uint8_t dataraw  = buf[12];
     const uint8_t flagsraw = buf[13];
-    tcp->doffsetbytes      = (dataraw >> 4) & 0x0F;
-    tcp->doffsetbytes *= 4; // it's scaled by sizeof(u32)
+    th->doffsetbytes      = (dataraw >> 4) & 0x0F;
+    th->doffsetbytes *= 4; // it's scaled by sizeof(u32)
 
-    tcp->flags.cwr = ((flagsraw & (1 << 7)) != 0);
-    tcp->flags.ece = ((flagsraw & (1 << 6)) != 0);
-    tcp->flags.urg = ((flagsraw & (1 << 5)) != 0);
-    tcp->flags.ack = ((flagsraw & (1 << 4)) != 0);
-    tcp->flags.psh = ((flagsraw & (1 << 3)) != 0);
-    tcp->flags.rst = ((flagsraw & (1 << 2)) != 0);
-    tcp->flags.syn = ((flagsraw & (1 << 1)) != 0);
-    tcp->flags.fin = ((flagsraw & (1 << 0)) != 0);
+    th->flags.cwr = ((flagsraw & (1 << 7)) != 0);
+    th->flags.ece = ((flagsraw & (1 << 6)) != 0);
+    th->flags.urg = ((flagsraw & (1 << 5)) != 0);
+    th->flags.ack = ((flagsraw & (1 << 4)) != 0);
+    th->flags.psh = ((flagsraw & (1 << 3)) != 0);
+    th->flags.rst = ((flagsraw & (1 << 2)) != 0);
+    th->flags.syn = ((flagsraw & (1 << 1)) != 0);
+    th->flags.fin = ((flagsraw & (1 << 0)) != 0);
 
-    tcp->window    = read_u16_bswap(buf, 14);
-    tcp->checksum  = read_u16_bswap(buf, 16);
-    tcp->urgentptr = read_u16_bswap(buf, 18);
+    th->window    = read_u16_bswap(buf, 14);
+    th->checksum  = read_u16_bswap(buf, 16);
+    th->urgentptr = read_u16_bswap(buf, 18);
+
+    if (th->doffsetbytes != BASE_HDR_SZ) {
+        hexdump(buf, bufsiz, 16, " | ");
+        die("tcp packet has options");
+
+    }
 
     return 0;
 }
 
-void tcp_dump(struct tcp *tcp)
+void tcp_dumphdr(struct tcp_header *tcp)
 {
     printf("TCP | Source Port: %hu\n", tcp->srcport);
     printf("TCP |   Dest Port: %hu\n", tcp->dstport);

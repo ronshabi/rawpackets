@@ -2,8 +2,6 @@
 
 // TODO (vscode): change opt+shift+[ / ] to back and forward.
 
-#include "packet.h"
-
 #include <stddef.h>
 #include <stdint.h>
 
@@ -21,7 +19,6 @@ struct tun {
     char          name[TUN_IFNAMSIZ];
     uint8_t       rdbuf[TUN_RDBUFSIZ];
     ssize_t       nbytesrd;
-    struct packet lastpkt;
 };
 
 void tun_init(struct tun *tun, const char *name);

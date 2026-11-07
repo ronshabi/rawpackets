@@ -1,8 +1,10 @@
 #include "context.h"
 
 #include "datetime.h"
+#include "tcp.h"
 #include "debug.h"
 #include "die.h"
+#include "packet.h"
 #include "tcp_pool.h"
 
 #include <stdio.h>
@@ -35,7 +37,7 @@ void context_run_one(struct context *ctx)
     struct tcp_pool_item *item = tcp_pool_next_pending(&ctx->tcp_pool);
 
     if (item) {
-        context_process_one_tcp_item(item);
+        context_process_one_tcp_item(ctx, item);
     }
 
     tun_run_one(&ctx->tun);
@@ -51,7 +53,7 @@ void context_run_one(struct context *ctx)
     // now we should find a slot for this new tcp connection
 
     if (bpi.protocol == IPPROTO_TCP) {
-        context_handle_incoming_tcp(ctx, &bpi);
+        context_handle_new_tcp(ctx, &bpi);
     } else {
         DBG("unimplemented protocol");
         return;
@@ -59,7 +61,7 @@ void context_run_one(struct context *ctx)
 }
 
 // FIXME: change the name better
-void context_process_one_tcp_item(struct tcp_pool_item *item)
+void context_process_one_tcp_item(struct context *ctx, struct tcp_pool_item *item)
 {
     // REFACTOR: move into the tcp file
     struct tcb *tcb = item->tcb;
@@ -67,7 +69,10 @@ void context_process_one_tcp_item(struct tcp_pool_item *item)
     switch (tcb->state) {
 
     case TCP_STATE_CLOSED      : die("closed"); break;
-    case TCP_STATE_LISTEN      : die("listen"); break;
+    case TCP_STATE_LISTEN      : 
+        context_handle_tcp_listen(ctx, item);
+        die("listen");
+        break;
     case TCP_STATE_SYN_SENT    : die("syn sent"); break;
     case TCP_STATE_SYN_RECEIVED: die("syn received"); break;
     case TCP_STATE_ESTABLISHED : die("state established"); break;
@@ -81,7 +86,7 @@ void context_process_one_tcp_item(struct tcp_pool_item *item)
 }
 
 // FIXME: change the name
-void context_handle_incoming_tcp(struct context           *ctx,
+void context_handle_new_tcp(struct context           *ctx,
                                  struct basic_packet_info *bpi)
 {
     DBG("0x%08X:%hu => 0x%08X:%hu (%u bytes)", bpi->src_addr, bpi->src_port,
@@ -119,7 +124,7 @@ void context_handle_incoming_tcp(struct context           *ctx,
         // NULL, meaning when the connection closed, that connection was
         // responsible for freeing its TCB and zeroing the tcb pointer. Failure
         // to do so is a leak, but it's not our fault here.
-        item->tcb = malloc(sizeof(struct tcb));
+        item->tcb        = malloc(sizeof(struct tcb));
         item->tcb->state = TCP_STATE_LISTEN;
         DBG("init new TCB on LISTEN");
     }
@@ -131,10 +136,27 @@ void context_handle_incoming_tcp(struct context           *ctx,
         DBG("!!! WARNING: There is already data in the TCB packet !!!");
     }
     item->tcb->pkt_len = ctx->tun.nbytesrd;
+
+    const uint32_t ihlb = bpi->proto_hdr_offset;
+
+    DBG("ip header length: %u bytes", ihlb);
+
+    item->tcb->iphdrlen = ihlb;
     memcpy(item->tcb->pkt_data, ctx->tun.rdbuf, ctx->tun.nbytesrd);
+
+    DBG("parse header");
+    tcp_parse_header(&item->tcb->th, item->tcb->pkt_data + ihlb,
+                     item->tcb->pkt_len - ihlb);
+    tcp_dumphdr(&item->tcb->th);
 }
 
 void context_teardown(struct context *ctx)
 {
     tun_teardown(&ctx->tun);
+}
+void context_handle_tcp_listen(struct context *ctx, struct tcp_pool_item *item)
+{
+    (void)item;
+    (void)ctx;
+    die("Handling tcp listen");
 }
