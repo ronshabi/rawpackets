@@ -4,12 +4,18 @@
 
 #include <stdint.h>
 
+struct tcp_options {
+    int eol;
+    int nop;
+    uint32_t mss;
+};
+
 struct tcp_header {
     uint16_t srcport;
     uint16_t dstport;
     uint32_t seq;
     uint32_t ack;
-    uint8_t  doffsetbytes;
+    uint32_t doffsetbytes;
     struct flags {
         uint8_t cwr : 1;
         uint8_t ece : 1;
@@ -23,6 +29,8 @@ struct tcp_header {
     uint32_t window;
     uint16_t checksum;
     uint16_t urgentptr;
+    uint32_t options_size;
+    struct tcp_options options;
 };
 
 enum tcp_state {
@@ -59,4 +67,5 @@ struct tcb {
 };
 
 int  tcp_parse_header(struct tcp_header *th, uint8_t *buf, uint64_t bufsiz);
+int  tcp_parse_options(struct tcp_header *th, uint8_t *buf, uint64_t bufsiz);
 void tcp_dumphdr(struct tcp_header *tcp);
